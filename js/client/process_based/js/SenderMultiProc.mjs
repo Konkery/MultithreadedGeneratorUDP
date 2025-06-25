@@ -11,5 +11,7 @@ process.on('message', (msg) => {
         sender.StartGracefulShutDown();
     }
 });
-await sender.Run(workerData);
-console.log(`Process ${process.pid}: sockets ${workerData.sockets}`);
+
+console.log(`Process ${process.pid}: sockets ${workerData.sockets.length}`);
+await sender.Init();
+sender.RunFixedSpeed(workerData);

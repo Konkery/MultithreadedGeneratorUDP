@@ -1,18 +1,14 @@
 import minimist from 'minimist';
-import Sender from './senderSingeThread.mjs';
-import { Worker } from 'worker_threads';
-import { fork } from 'child_process';
-import { cpus } from 'os';
+import { fork } from 'node:child_process';
+
 
 // Конфигурация по умолчанию
-const TOTAL_BUFFER_SIZE = 1_073_741_824; // 1GB in bytes
+const TOTAL_BUFFER_SIZE_B = 1_073_741_824; // 1GB in bytes
+const GB_in_bytes = 1_073_741_824;
 const DEFAULT_PORT_BASE = 40000;
-const DEFAULT_PACKET_SIZE = 8192; // 8KB
-const DEFAULT_SPEED = 10; // Gbit/s
-const MICROSECOND = 1e6;
-const DEFAULT_MODE = 'sthread';
-const MODE_MULTITHREAD = 'mthread';
-const MODE_MULTIPROC = 'mproc';
+const DEFAULT_PACKET_SIZE_KB = 8192; // 8KB
+const DEFAULT_SPEED_Gbit = 1; // Gbit/s
+
 
 
 // Парсинг аргументов
@@ -26,20 +22,19 @@ const args = minimist(process.argv.slice(2), {
         m: 'mode'
     },
     default: {
-        portBase: DEFAULT_PORT_BASE,
-        packetSize: DEFAULT_PACKET_SIZE,
-        sockets: 1,
-        speed: DEFAULT_SPEED,
-        mode: DEFAULT_MODE
+        packetSize: DEFAULT_PACKET_SIZE_KB,
+        sockets: 1
     }
 });
 
 const serverAddress = args.server;
 const numSockets = parseInt(args.sockets);
+const totalBufferSize = parseFloat(args.bufferSize) ? parseFloat(args.bufferSize) * GB_in_bytes : GB_in_bytes;
 const portBase = parseInt(args.portBase);
 const packetSize = parseInt(args.packetSize);
 const isMaxSpeed = args.max;
 const targetSpeed = isMaxSpeed ? 0 : parseFloat(args.speed);
+const packetsPerSec = targetSpeed * 134217728 / packetSize;
 
 if (!serverAddress) throw new Error('Server address required');
 if (isNaN(numSockets)) throw new Error('Invalid sockets count');
@@ -49,38 +44,33 @@ if (!isMaxSpeed && isNaN(targetSpeed)) throw new Error('Invalid speed');
 
 console.log(`Starting client with:
 - Server: ${serverAddress}
+- Total SendBuffeSize: ${(totalBufferSize / GB_in_bytes).toFixed(2)} GB
 - Sockets: ${numSockets}
-- Mode: ${isMaxSpeed ? 'MAX SPEED' : targetSpeed + ' Packets/s'}
+- Mode: ${isMaxSpeed ? 'MAX SPEED' : `${targetSpeed} Gbit (${packetsPerSec} Packets/s)`}
 - Packet size: ${(packetSize / 1024).toFixed(2)} KB`);
 const socketInfoList = Array(numSockets).fill().map((_, i) => ({
     port: portBase + i,
+    portBase,
     packetSize,
     socketIndex: i,
-    bufferSize: Math.floor(TOTAL_BUFFER_SIZE / numSockets)
+    bufferSize: Math.floor(totalBufferSize / numSockets)
 }));
 
 const processes = [];
-let processIndex = 0;
 for (let i = 0; i < numSockets; i++) {
-    // Каждые 2 сокета — в отдельный процесс
-    if ((i + 1) % 2 === 0 || i === numSockets - 1) {
-        let args = JSON.stringify({
-            serverAddress,
-            sockets: socketInfoList.splice(0, 2),
-            isMaxSpeed,
-            targetSpeed,
-            threadIndex: processIndex,
-            packetSize
-        });
-        const child = fork('senderMultiProc.mjs', [args], {
-            stdio: ['inherit', 'inherit', 'inherit', 'ipc']
-        });
+    let args = JSON.stringify({
+        serverAddress,
+        sockets: socketInfoList.splice(0, 1),
+        isMaxSpeed,
+        targetSpeed: packetsPerSec/numSockets,
+        threadIndex: i,
+        packetSize
+    });
+    const child = fork('./js/client/process_based/js/SenderMultiProc.mjs', [args], {
+        stdio: ['inherit', 'inherit', 'inherit', 'ipc']
+    });
 
-        const cpuCore = processIndex % cpus().length;
-        // execSync(`taskset -cp ${cpuCore} ${child.pid}`);
-        processIndex++;
-        processes.push(child);
-    }
+    processes.push(child);
 }
 
 // Обработка SIGINT
