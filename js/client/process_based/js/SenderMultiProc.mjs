@@ -17,6 +17,7 @@ process.on('message', (msg) => {
 // Привязка к CPU-ядру через taskset (Linux)
 if (os.type() == 'Linux') {
     const { pid } = process;
+    let i = workerData.threadIndex;
     const cpu = (i + 1) < os.cpus().length ? i + 1 : i - os.cpus().length;
     execSync(`taskset -cp ${cpu} ${pid}`);
     console.log(`Process ${process.pid} running on Core ${cpu}`);
