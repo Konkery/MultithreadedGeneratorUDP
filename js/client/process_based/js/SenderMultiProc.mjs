@@ -1,7 +1,9 @@
+import os from 'os';
 import Sender from './Sender.mjs';
 import { argv } from 'process';
+import { execSync } from 'child_process';
 
-const [ path, fn, args ] = argv;
+const [path, fn, args] = argv;
 let workerData = JSON.parse(args);
 
 const sender = new Sender(workerData);
@@ -12,6 +14,13 @@ process.on('message', (msg) => {
     }
 });
 
-console.log(`Process ${process.pid}: sockets ${workerData.sockets.length}`);
+// Привязка к CPU-ядру через taskset (Linux)
+if (os.type() == 'Linux') {
+    const { pid } = process;
+    const cpu = (i + 1) < os.cpus().length ? i + 1 : i - os.cpus().length;
+    execSync(`taskset -cp ${cpu} ${pid}`);
+    console.log(`Process ${process.pid} running on Core ${cpu}`);
+}
+
 await sender.Init();
 sender.RunFixedSpeed(workerData);

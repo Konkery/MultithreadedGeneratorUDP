@@ -1,5 +1,6 @@
 import minimist from 'minimist';
-import { fork } from 'node:child_process';
+import { execSync, fork } from 'node:child_process';
+import os from 'node:os';
 
 
 // Конфигурация по умолчанию
@@ -62,7 +63,7 @@ for (let i = 0; i < numSockets; i++) {
         serverAddress,
         sockets: socketInfoList.splice(0, 1),
         isMaxSpeed,
-        targetSpeed: packetsPerSec/numSockets,
+        targetSpeed: packetsPerSec / numSockets,
         threadIndex: i,
         packetSize
     });
@@ -71,6 +72,13 @@ for (let i = 0; i < numSockets; i++) {
     });
 
     processes.push(child);
+}
+
+// Привязка к CPU-ядру через taskset (Linux)
+if (os.type() == 'Linux') {
+    const { pid } = process;
+    const cpu = 0;
+    execSync(`taskset -cp ${cpu} ${pid}`);
 }
 
 // Обработка SIGINT
