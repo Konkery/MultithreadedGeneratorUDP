@@ -76,13 +76,14 @@ class Sender {
     async *ThrottledIndexGen(delayMs, timeoutMs) {
         while (!this.stopFlag) {
             const t1 = performance.now();
+            let t2 = 0;
             yield 0;
-            // let c = 0;
-            while (performance.now() - t1 < delayMs) {
-                // c++;
+            let avgWaitDelay = 0;
+            while ((t2=performance.now()) - t1 < delayMs - avgWaitDelay) {
+                avgWaitDelay = (avgWaitDelay + t2-t1) / 2;
+
                 await new Promise(resolve => setImmediate(resolve));
             }
-            // console.log(c);
         }
     }
 
