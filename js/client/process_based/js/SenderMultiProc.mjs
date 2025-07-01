@@ -1,4 +1,4 @@
-import os from 'os';
+import os, { cpus } from 'os';
 import Sender from './Sender.mjs';
 import { argv } from 'process';
 import { execSync } from 'child_process';
@@ -18,7 +18,8 @@ process.on('message', (msg) => {
 if (os.type() == 'Linux') {
     const { pid } = process;
     let i = workerData.threadIndex;
-    const cpu = (i + 1) < os.cpus().length ? i + 1 : i - os.cpus().length;
+    let { baseCPUIndex } = workerData;
+    const cpu = baseCPUIndex + (i % cpus().length);
     execSync(`taskset -cp ${cpu} ${pid}`);
     console.log(`Process ${process.pid} running on Core ${cpu}`);
 }

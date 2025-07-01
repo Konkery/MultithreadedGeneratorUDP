@@ -27,12 +27,12 @@ const args = minimist(process.argv.slice(2), {
         sockets: 1
     }
 });
-
 const serverAddress = args.server;
 const numSockets = parseInt(args.sockets);
 const totalBufferSize = parseFloat(args.bufferSize) ? parseFloat(args.bufferSize) * GB_in_bytes : GB_in_bytes;
 const portBase = parseInt(args.portBase);
 const packetSize = parseInt(args.packetSize);
+const baseCPUIndex = parseInt(args.baseCPU) ? parseInt(args.baseCPU) : 0; 
 const isMaxSpeed = args.max;
 const targetSpeed = isMaxSpeed ? 0 : parseFloat(args.speed);
 const packetsPerSec = targetSpeed * 134217728 / packetSize;
@@ -65,6 +65,7 @@ for (let i = 0; i < numSockets; i++) {
         isMaxSpeed,
         targetSpeed: packetsPerSec / numSockets,
         threadIndex: i,
+        baseCPUIndex,
         packetSize
     });
     const child = fork('./js/client/process_based/js/SenderMultiProc.mjs', [args], {
@@ -77,7 +78,7 @@ for (let i = 0; i < numSockets; i++) {
 // Привязка к CPU-ядру через taskset (Linux)
 if (os.type() == 'Linux') {
     const { pid } = process;
-    const cpu = 0;
+    const cpu = baseCPUIndex;
     execSync(`taskset -cp ${cpu} ${pid}`);
 }
 

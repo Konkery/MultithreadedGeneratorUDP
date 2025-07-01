@@ -92,7 +92,7 @@ class Sender {
      * @returns {Object} { period: number, k: number }
      */
     CalculateTiming(iterationsPerSecond) {
-        const MIN_PERIOD = 0.01; // Минимальный допустимый период в миллисекундах
+        const MIN_PERIOD = 0.1; // Минимальный допустимый период в миллисекундах
         const MULTIPLIER = 10;   // Во сколько раз увеличиваем период при агрегации
 
         // Базовый расчет периода
@@ -110,7 +110,7 @@ class Sender {
     }
 
     async RunFixedSpeed({ targetSpeed }) {
-        let { period, k } = this.CalculateTiming(targetSpeed);
+        let { period, k } = this.CalculateTiming(Math.round(targetSpeed));
         console.log(`[INFO] Send ${targetSpeed * k} packets with period ${period.toFixed(4)} ms`);
 
         for await (let i of this.ThrottledIndexGen(period)) {
