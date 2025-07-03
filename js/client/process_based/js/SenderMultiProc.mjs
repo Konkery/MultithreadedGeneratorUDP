@@ -25,4 +25,7 @@ if (os.type() == 'Linux') {
 }
 
 await sender.Init();
-sender.RunFixedSpeed(workerData);
+if (workerData.isTriang)
+    sender.RunTriangleSpeed(workerData);
+else 
+    sender.RunFixedSpeed(workerData);

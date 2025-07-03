@@ -34,6 +34,7 @@ const portBase = parseInt(args.portBase);
 const packetSize = parseInt(args.packetSize);
 const baseCPUIndex = parseInt(args.baseCPU) ? parseInt(args.baseCPU) : 0; 
 const isMaxSpeed = args.max;
+const isTriang = args.triang;
 const targetSpeed = isMaxSpeed ? 0 : parseFloat(args.speed);
 const packetsPerSec = targetSpeed * 134217728 / packetSize;
 
@@ -71,6 +72,7 @@ for (let i = 0; i < numSockets; i++) {
         serverAddress,
         sockets: socketInfoList.splice(0, 1),
         isMaxSpeed,
+        isTriang,
         targetSpeed: packetsPerSec / numSockets,
         threadIndex: i,
         baseCPUIndex,
