@@ -54,7 +54,7 @@ class Sender {
 
                 socket.send(buffer, portBase, serverAddress);
 
-                /* DEBUG */
+                /* DEBUG 
                 let t2 = performance.now();
                 deltaAvg += t2 - t1;
                 t1 = t2;
@@ -131,16 +131,26 @@ class Sender {
         let intervalCounter = 0;
         let skipCounter = 0;
         let skipRatio = 1;
+        let maxAchieved = false;
 
-        setInterval(() => {
+        let interval = setInterval(() => {
             intervalCounter = (intervalCounter * period <= T) ? intervalCounter + 1 : 0;
-            skipRatio = 1 - this.#TriangleWave(intervalCounter*period, T);
+            if (intervalCounter == 0) {
+                skipCounter = 0;
+            }
+            if (!maxAchieved) {
+                skipRatio = 1 - this.#TriangleWave(intervalCounter*period, T);
+                if (skipRatio == 1) {
+                    maxAchieved = true;
+                    clearInterval(interval);
+                }
+            }
 
         }, intervalPeriod);
 
         for await (let i of this.ThrottledIndexGen(period)) {
             for (let j = 0; j < k; j++) {
-                if (++skipCounter >= skipRatio * targetSpeed) {
+                if (maxAchieved || Math.random() > skipRatio) {
                     this.clients[i].send();
                 }
             }

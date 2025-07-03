@@ -52,7 +52,7 @@ console.log(`Starting client with:
 - Packet size: ${(packetSize / 1024).toFixed(2)} KB`);
 
 try {
-    let res = await setQlen({ delayMs: 5, mps: targetSpeed });
+    let res = await setQlen({ delayMs: 5, mps: packetsPerSec });
     console.log(`Set txqlen = ${res}`);
 } catch (e) {
     console.log(`Error trying to set txqlen: ${e}`);
