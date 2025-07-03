@@ -134,13 +134,13 @@ class Sender {
         let maxAchieved = false;
 
         let interval = setInterval(() => {
-            intervalCounter = (intervalCounter * period <= T) ? intervalCounter + 1 : 0;
+            intervalCounter = (intervalCounter * intervalPeriod <= T) ? intervalCounter + 1 : 0;
             if (intervalCounter == 0) {
                 skipCounter = 0;
             }
             if (!maxAchieved) {
-                skipRatio = 1 - this.#TriangleWave(intervalCounter*period, T);
-                if (skipRatio == 1) {
+                skipRatio = 1 - this.#TriangleWave(intervalCounter*intervalPeriod, T);
+                if (skipRatio == 0) {
                     maxAchieved = true;
                     clearInterval(interval);
                 }
