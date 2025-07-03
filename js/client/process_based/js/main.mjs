@@ -1,7 +1,7 @@
 import minimist from 'minimist';
 import { execSync, fork } from 'node:child_process';
 import os from 'node:os';
-
+import setQlen from './setqlen.mjs';
 
 // Конфигурация по умолчанию
 const TOTAL_BUFFER_SIZE_B = 1_073_741_824; // 1GB in bytes
@@ -49,6 +49,14 @@ console.log(`Starting client with:
 - Sockets: ${numSockets}
 - Mode: ${isMaxSpeed ? 'MAX SPEED' : `${targetSpeed} Gbit (${packetsPerSec} Packets/s)`}
 - Packet size: ${(packetSize / 1024).toFixed(2)} KB`);
+
+try {
+    let res = await setQlen({ delayMs: 5, mps: targetSpeed });
+    console.log(`Set txqlen = ${res}`);
+} catch (e) {
+    console.log(`Error trying to set txqlen: ${e}`);
+}
+
 const socketInfoList = Array(numSockets).fill().map((_, i) => ({
     port: portBase + i,
     portBase,

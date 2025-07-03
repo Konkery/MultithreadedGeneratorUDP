@@ -67,8 +67,10 @@ class Sender {
         });
         return Promise.all(this.clients.map(({ socket }, i) => {
             socket.bind(socketsInfo[i].port, () => {
-                console.log(socketsInfo[i].bufferSize);
-                socket.setSendBufferSize(socketsInfo[i].bufferSize);
+                const { bufferSize } = socketsInfo[i];
+                console.log(bufferSize);
+                socket.setSendBufferSize(bufferSize);
+                socket.setRecvBufferSize(bufferSize);
             });
         }));
     }
@@ -121,10 +123,43 @@ class Sender {
         this.GracefulShutDown();
     }
 
+    async RunTriangleSpeed({ targetSpeed }) {
+        const T = 60 * 1000;
+        let { period, k } = this.CalculateTiming(Math.round(targetSpeed));
+        console.log(`[INFO] Send ${targetSpeed * k} packets with period ${period.toFixed(4)} ms`);
+        let intervalPeriod = 20;
+        let intervalCounter = 0;
+        let skipCounter = 0;
+        let skipRatio = 1;
+
+        setInterval(() => {
+            intervalCounter = (intervalCounter * period <= T) ? intervalCounter + 1 : 0;
+            skipRatio = 1 - this.#TriangleWave(intervalCounter*period, T);
+
+        }, intervalPeriod);
+
+        for await (let i of this.ThrottledIndexGen(period)) {
+            for (let j = 0; j < k; j++) {
+                if (++skipCounter >= skipRatio * targetSpeed) {
+                    this.clients[i].send();
+                }
+            }
+        }
+        console.log('done');
+        this.GracefulShutDown();
+    }
+
+    #TriangleWave(t, T) {
+        const phase = t % T;
+        return phase < T / 2
+            ? (2 * phase) / T       // рост от 0 до 1
+            : 2 * (1 - phase / T);  // спад от 1 до 0
+    }
+
     async RunMaxSpeed() {
         const period = 0.01;
         const k = 1;
-        
+
         for await (let i of this.ThrottledIndexGen(period)) {
             for (let j = 0; j < k; j++) {
                 this.clients[i].send();
