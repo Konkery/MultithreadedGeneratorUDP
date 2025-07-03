@@ -1,4 +1,5 @@
-const { exec } = require('child_process');
+import { exec } from "child_process";
+
 const IF = 'enp1s0np0';
 /**
  * Устанавливает длину очереди txqueuelen на интерфейсе
